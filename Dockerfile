@@ -25,7 +25,7 @@ RUN git clone --depth 1 -b v1.39.1 https://github.com/grpc/grpc --recursive --sh
     cd $GRPC_BASE_DIR/cmake/build && \
     cmake ../.. && \
     make -j$MAX_CORES && \
-# Build dependencies and install
+# Build dependencies and install for host architecture
     cmake ../.. -DgRPC_INSTALL=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DgRPC_ABSL_PROVIDER=module \
@@ -36,7 +36,9 @@ RUN git clone --depth 1 -b v1.39.1 https://github.com/grpc/grpc --recursive --sh
         -DgRPC_ZLIB_PROVIDER=module && \
     make -j$MAX_CORES && \
     make -j$MAX_CORES install && \
-# Build and install gRPC for the host architecture.    
+# Build and install gRPC for the host architecture.
+# We do this because we need to be able to run protoc and grpc_cpp_plugin
+# while cross-compiling.
     cmake  \
         -DCMAKE_BUILD_TYPE=Release \
         -DgRPC_INSTALL=ON \
@@ -66,6 +68,9 @@ RUN MAX_CORES=16 && \
       ../.. && \
     make -j$MAX_CORES install && \
 # Build and install gRPC for ARM
+# This build will use the host architecture copies of protoc and
+# grpc_cpp_plugin that we built earlier because we installed them
+# to a location in our PATH (/usr/local/bin).
     mkdir -p $GRPC_BASE_DIR/cmake/build_arm && \
     cd $GRPC_BASE_DIR/cmake/build_arm && \
     cmake \
@@ -79,7 +84,9 @@ FROM build-env AS deploy-env
 
 COPY ./src .
 
-# Build helloworld example for ARM.
+# Build helloworld example for ARM
+# As above, it will find and use protoc and grpc_cpp_plugin
+# for the host architecture.
 RUN MAX_CORES=16 && \
     mkdir -p /cmake/build_arm && \
     cd /cmake/build_arm && \
